@@ -74,6 +74,9 @@ La API queda en `http://localhost:5000` (perfil `http` por defecto).
 | GET | `/wallets/me` | Billetera del usuario autenticado |
 | POST | `/devices/register` | Registrar un datáfono por serial |
 | POST | `/transactions/recharge` | Recargar saldo (idempotente, atómico) |
+| POST | `/biometrics/enroll` | Enrolar la huella de un usuario |
+| POST | `/biometrics/verify` | Identificar usuario SOLO por huella (1:N) |
+| GET | `/biometrics/status/{userId}` | Estado de enrolamiento biométrico |
 
 > **Identidad temporal de desarrollo:** hasta integrar Cognito, los endpoints
 > `/me` leen el header `X-Dev-UserId` con el UUID del usuario. Ese header

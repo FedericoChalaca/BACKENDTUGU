@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Tugu.Application.Biometrics;
 using Tugu.Application.Devices;
 using Tugu.Application.Users;
 using Tugu.Application.Wallets;
@@ -13,6 +14,7 @@ public static class DependencyInjection
         services.AddScoped<UserService>();
         services.AddScoped<WalletService>();
         services.AddScoped<DeviceService>();
+        services.AddScoped<BiometricService>();
         return services;
     }
 }
