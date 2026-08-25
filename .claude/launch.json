@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "tugu-api",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "Tugu.Api", "--launch-profile", "http"],
+      "port": 5000
+    }
+  ]
+}

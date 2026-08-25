@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tugu-postgres
+    environment:
+      POSTGRES_DB: tugu
+      POSTGRES_USER: tugu
+      # Credenciales SOLO de desarrollo local. Las reales vivirán en AWS.
+      POSTGRES_PASSWORD: tugu_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - tugu-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tugu -d tugu"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  tugu-pgdata:

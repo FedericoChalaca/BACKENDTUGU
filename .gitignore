@@ -1,0 +1,45 @@
+# Build
+bin/
+obj/
+out/
+publish/
+
+# Visual Studio / Rider / VS Code
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Test results / cobertura
+TestResults/
+coverage*.json
+coverage*.xml
+coverage*.info
+*.trx
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+
+# Secretos y configuración local
+# (appsettings.json y appsettings.Development.json SÍ se versionan;
+#  cualquier archivo local con secretos va aquí)
+appsettings.Local.json
+appsettings.*.Local.json
+*.pfx
+*.key
+secrets.json
+.env
+.env.*
+
+# Sistema operativo
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
+logs/
