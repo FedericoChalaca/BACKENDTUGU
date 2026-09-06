@@ -57,6 +57,16 @@ public class InsufficientFundsException : ConflictException
     }
 }
 
+/// <summary>Identidad válida pero sin permiso sobre el recurso → HTTP 403.</summary>
+public class ForbiddenException : AppException
+{
+    public override string Code => "FORBIDDEN";
+
+    public ForbiddenException(string message) : base(message)
+    {
+    }
+}
+
 /// <summary>Sin identidad válida → HTTP 401.</summary>
 public class UnauthenticatedException : AppException
 {

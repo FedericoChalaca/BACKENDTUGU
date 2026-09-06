@@ -16,6 +16,21 @@ public class CreateUserRequest
     public string? Email { get; init; }
 }
 
+/// <summary>
+/// Todos los campos son opcionales: solo se actualizan los enviados. El
+/// documento de identidad no es editable por API (dato KYC).
+/// </summary>
+public class UpdateUserRequest
+{
+    public string? FirstName { get; init; }
+
+    public string? LastName { get; init; }
+
+    public string? PhoneNumber { get; init; }
+
+    public string? Email { get; init; }
+}
+
 public class UserResponse
 {
     public required Guid Id { get; init; }

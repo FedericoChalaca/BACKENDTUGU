@@ -68,4 +68,53 @@ public class UserService
         await _users.AddAsync(user, ct);
         return user;
     }
+
+    /// <summary>
+    /// Actualiza datos de contacto/nombre. El documento de identidad NO es
+    /// editable por API (dato KYC): cambiarlo exige un proceso de verificación.
+    /// </summary>
+    public async Task<User> UpdateAsync(
+        Guid id,
+        string? firstName,
+        string? lastName,
+        string? phoneNumber,
+        string? email,
+        CancellationToken ct = default)
+    {
+        if (firstName is null && lastName is null && phoneNumber is null && email is null)
+            throw new ValidationException("Debes enviar al menos un campo para actualizar.");
+
+        var user = await GetByIdAsync(id, ct);
+
+        var errors = new Dictionary<string, string[]>();
+
+        if (firstName is not null && string.IsNullOrWhiteSpace(firstName))
+            errors["firstName"] = new[] { "El nombre no puede quedar vacío." };
+        if (lastName is not null && string.IsNullOrWhiteSpace(lastName))
+            errors["lastName"] = new[] { "El apellido no puede quedar vacío." };
+        if (phoneNumber is not null && string.IsNullOrWhiteSpace(phoneNumber))
+            errors["phoneNumber"] = new[] { "El teléfono no puede quedar vacío." };
+        if (!string.IsNullOrWhiteSpace(email) && !email.Contains('@'))
+            errors["email"] = new[] { "El email no tiene un formato válido." };
+
+        if (errors.Count > 0)
+            throw new ValidationException("Datos de usuario inválidos.", errors);
+
+        if (phoneNumber is not null)
+        {
+            phoneNumber = phoneNumber.Trim();
+            var other = await _users.GetByPhoneAsync(phoneNumber, ct);
+            if (other is not null && other.Id != user.Id)
+                throw new ConflictException("Ya existe otro usuario con ese teléfono.");
+            user.PhoneNumber = phoneNumber;
+        }
+
+        if (firstName is not null) user.FirstName = firstName.Trim();
+        if (lastName is not null) user.LastName = lastName.Trim();
+        if (email is not null) user.Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim();
+
+        user.UpdatedAt = DateTime.UtcNow;
+        await _users.UpdateAsync(user, ct);
+        return user;
+    }
 }

@@ -26,6 +26,7 @@ public static class DependencyInjection
         services.AddScoped<IWalletRepository, EfWalletRepository>();
         services.AddScoped<IDeviceRepository, EfDeviceRepository>();
         services.AddScoped<IBiometricRepository, EfBiometricRepository>();
+        services.AddScoped<ITransactionRepository, EfTransactionRepository>();
         services.AddScoped<Application.Transactions.ITransactionEngine, Transactions.TransactionEngine>();
         services.AddSingleton<ITemplateCipher, Security.AesTemplateCipher>();
 

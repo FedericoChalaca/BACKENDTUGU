@@ -17,5 +17,8 @@ public class DeviceResponse
 
     public required string Status { get; init; }
 
+    /// <summary>Última señal de vida del datáfono (UTC).</summary>
+    public DateTime? LastSeenAt { get; init; }
+
     public required DateTime CreatedAt { get; init; }
 }

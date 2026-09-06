@@ -54,6 +54,39 @@ public class UsersController : ControllerBase
         return Ok(ApiResponse<UserResponse>.Ok(ToResponse(user)));
     }
 
+    /// <summary>Devuelve un usuario por id.</summary>
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<UserResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
+    {
+        var user = await _userService.GetByIdAsync(id, ct);
+        return Ok(ApiResponse<UserResponse>.Ok(ToResponse(user)));
+    }
+
+    /// <summary>
+    /// Actualiza nombre, teléfono o email del usuario. Solo el propio usuario
+    /// puede editar su perfil (la identidad debe coincidir con el id).
+    /// </summary>
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<UserResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateUserRequest request, CancellationToken ct)
+    {
+        var callerId = DevIdentity.GetUserId(HttpContext);
+        if (callerId != id)
+            throw new ForbiddenException("Solo puedes editar tu propio perfil.");
+
+        var user = await _userService.UpdateAsync(
+            id, request.FirstName, request.LastName, request.PhoneNumber, request.Email, ct);
+
+        return Ok(ApiResponse<UserResponse>.Ok(ToResponse(user)));
+    }
+
     private static UserResponse ToResponse(User user) => new()
     {
         Id = user.Id,

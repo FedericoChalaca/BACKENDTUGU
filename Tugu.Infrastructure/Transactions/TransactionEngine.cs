@@ -42,10 +42,18 @@ public class TransactionEngine : ITransactionEngine
         if (existing is not null)
             return new TransactionResult(EnsureSameOperation(existing, command), true);
 
-        if (command.DeviceId is Guid deviceId &&
-            await _db.Devices.AsNoTracking().FirstOrDefaultAsync(d => d.Id == deviceId, ct) is null)
+        // Validar corresponsal: el retiro entrega efectivo físico, así que
+        // SIEMPRE nace en un datáfono. La recarga puede venir de la app.
+        if (command.Type == TransactionType.Withdrawal && command.DeviceId is null)
+            throw new ValidationException("El retiro debe originarse en un datáfono: deviceId es obligatorio.");
+
+        if (command.DeviceId is Guid deviceId)
         {
-            throw new NotFoundException($"No existe un dispositivo con id {deviceId}.");
+            var device = await _db.Devices.AsNoTracking().FirstOrDefaultAsync(d => d.Id == deviceId, ct)
+                ?? throw new NotFoundException($"No existe un dispositivo con id {deviceId}.");
+
+            if (device.Status != DeviceStatus.Active)
+                throw new ConflictException($"El datáfono {device.SerialNumber} está inactivo y no puede operar.");
         }
 
         await using var dbTransaction = await _db.Database.BeginTransactionAsync(ct);
@@ -60,9 +68,10 @@ public class TransactionEngine : ITransactionEngine
             if (wallet.Status != WalletStatus.Active)
                 throw new ConflictException($"La billetera no está activa (estado: {wallet.Status}).");
 
-            // Un usuario bloqueado no puede mover saldo aunque su billetera
-            // siga activa. (PendingVerification sí puede recargar: el bloqueo
-            // de retiros por KYC incompleto se define en la fase de retiro.)
+            // Reglas por estado del dueño:
+            //  - Blocked: no mueve saldo en ningún sentido.
+            //  - PendingVerification: puede RECARGAR (cargar plata a su cuenta)
+            //    pero NO RETIRAR: sacar efectivo exige identidad verificada (KYC).
             var owner = await _db.Users.AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == wallet.UserId, ct)
                 ?? throw new InvalidOperationException(
@@ -70,6 +79,10 @@ public class TransactionEngine : ITransactionEngine
 
             if (owner.Status == UserStatus.Blocked)
                 throw new ConflictException("El usuario dueño de la billetera está bloqueado.");
+
+            if (command.Type == TransactionType.Withdrawal && owner.Status != UserStatus.Active)
+                throw new ConflictException(
+                    "El usuario debe tener identidad verificada (estado Active) para retirar efectivo.");
 
             var newBalance = command.Type switch
             {

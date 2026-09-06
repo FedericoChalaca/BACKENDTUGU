@@ -15,6 +15,7 @@ public static class DependencyInjection
         services.AddScoped<WalletService>();
         services.AddScoped<DeviceService>();
         services.AddScoped<BiometricService>();
+        services.AddScoped<Transactions.TransactionQueryService>();
         return services;
     }
 }

@@ -41,6 +41,16 @@ public class WalletsController : ControllerBase
         return Ok(ApiResponse<WalletResponse>.Ok(ToResponse(wallet)));
     }
 
+    /// <summary>Devuelve una billetera por id (incluye el saldo).</summary>
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<WalletResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
+    {
+        var wallet = await _walletService.GetByIdAsync(id, ct);
+        return Ok(ApiResponse<WalletResponse>.Ok(ToResponse(wallet)));
+    }
+
     private static WalletResponse ToResponse(Wallet wallet) => new()
     {
         Id = wallet.Id,

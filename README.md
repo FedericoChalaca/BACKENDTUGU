@@ -70,10 +70,20 @@ La API queda en `http://localhost:5000` (perfil `http` por defecto).
 | GET | `/health` | Estado de la API |
 | POST | `/users` | Crear usuario |
 | GET | `/users/me` | Usuario autenticado |
+| GET | `/users/{id}` | Usuario por id |
+| PUT | `/users/{id}` | Editar nombre/teléfono/email (solo el propio usuario) |
 | POST | `/wallets` | Crear billetera de un usuario |
 | GET | `/wallets/me` | Billetera del usuario autenticado |
+| GET | `/wallets/{id}` | Billetera por id |
 | POST | `/devices/register` | Registrar un datáfono por serial |
+| GET | `/devices/{id}` | Datáfono por id (incluye última conexión) |
+| POST | `/devices/{id}/heartbeat` | Señal de vida del datáfono |
+| POST | `/devices/{id}/activate` | Activar datáfono |
+| POST | `/devices/{id}/deactivate` | Desactivar datáfono |
 | POST | `/transactions/recharge` | Recargar saldo (idempotente, atómico) |
+| POST | `/transactions/withdraw` | Retiro en datáfono (idempotente; exige usuario verificado y datáfono activo) |
+| GET | `/transactions` | Movimientos paginados con filtros (tipo, estado, fechas, orden) |
+| GET | `/transactions/{id}` | Detalle de una transacción |
 | POST | `/biometrics/enroll` | Enrolar la huella de un usuario |
 | POST | `/biometrics/verify` | Identificar usuario SOLO por huella (1:N) |
 | GET | `/biometrics/status/{userId}` | Estado de enrolamiento biométrico |
@@ -85,6 +95,13 @@ La API queda en `http://localhost:5000` (perfil `http` por defecto).
 > **Persistencia:** PostgreSQL local vía Docker (`docker compose up -d`) con
 > EF Core. El modelo de datos está documentado en
 > [docs/er-diagram.md](docs/er-diagram.md).
+>
+> **Contrato para las apps:** [docs/api-handoff.md](docs/api-handoff.md)
+> (auth, formato de respuestas, códigos de error, ejemplos, usuarios de prueba)
+> y el OpenAPI exportado en [docs/openapi.json](docs/openapi.json).
+>
+> **CI:** [.github/workflows/ci.yml](.github/workflows/ci.yml) compila y corre
+> todos los tests (con PostgreSQL efímero) en cada push/PR a GitHub.
 
 ## Cómo correr las pruebas
 

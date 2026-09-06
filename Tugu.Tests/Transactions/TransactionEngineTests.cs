@@ -78,8 +78,24 @@ public class TransactionEngineTests : IAsyncLifetime
     private static TransactionCommand Recharge(Guid walletId, decimal amount, Guid key) =>
         new(walletId, TransactionType.Recharge, amount, key, null, null, "test");
 
-    private static TransactionCommand Withdraw(Guid walletId, decimal amount, Guid key) =>
-        new(walletId, TransactionType.Withdrawal, amount, key, null, null, "test");
+    /// <summary>El retiro siempre nace en un datáfono activo (regla del motor).</summary>
+    private static async Task<Device> SeedDeviceAsync()
+    {
+        await using var db = NewContext();
+        var device = new Device
+        {
+            SerialNumber = $"SN-{Guid.NewGuid():N}"[..20],
+            Alias = "Test",
+            Status = DeviceStatus.Active,
+            CreatedBy = "test"
+        };
+        db.Devices.Add(device);
+        await db.SaveChangesAsync();
+        return device;
+    }
+
+    private static TransactionCommand Withdraw(Guid walletId, decimal amount, Guid key, Guid deviceId) =>
+        new(walletId, TransactionType.Withdrawal, amount, key, null, deviceId, "test");
 
     [SkippableFact]
     public async Task Recarga_ActualizaSaldoYGuardaBalanceAfter()
@@ -141,10 +157,11 @@ public class TransactionEngineTests : IAsyncLifetime
     {
         RequireDb();
         var wallet = await SeedWalletAsync(10_000m);
+        var device = await SeedDeviceAsync();
 
         await using var db = NewContext();
         await Assert.ThrowsAsync<InsufficientFundsException>(() =>
-            new TransactionEngine(db).ExecuteAsync(Withdraw(wallet.Id, 50_000m, Guid.NewGuid())));
+            new TransactionEngine(db).ExecuteAsync(Withdraw(wallet.Id, 50_000m, Guid.NewGuid(), device.Id)));
 
         Assert.Equal(10_000m, await GetBalanceAsync(wallet.Id));
     }
@@ -154,6 +171,7 @@ public class TransactionEngineTests : IAsyncLifetime
     {
         RequireDb();
         var wallet = await SeedWalletAsync(100_000m);
+        var device = await SeedDeviceAsync();
 
         async Task<Exception?> Run()
         {
@@ -161,7 +179,7 @@ public class TransactionEngineTests : IAsyncLifetime
             {
                 await using var db = NewContext();
                 await new TransactionEngine(db).ExecuteAsync(
-                    Withdraw(wallet.Id, 80_000m, Guid.NewGuid()));
+                    Withdraw(wallet.Id, 80_000m, Guid.NewGuid(), device.Id));
                 return null;
             }
             catch (Exception ex)

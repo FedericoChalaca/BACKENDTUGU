@@ -28,12 +28,55 @@ public class DevicesController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, ApiResponse<DeviceResponse>.Ok(ToResponse(device)));
     }
 
+    /// <summary>Devuelve un datáfono por id.</summary>
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<DeviceResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
+    {
+        var device = await _deviceService.GetByIdAsync(id, ct);
+        return Ok(ApiResponse<DeviceResponse>.Ok(ToResponse(device)));
+    }
+
+    /// <summary>Señal de vida del datáfono: actualiza su última conexión.</summary>
+    [HttpPost("{id:guid}/heartbeat")]
+    [ProducesResponseType(typeof(ApiResponse<DeviceResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Heartbeat(Guid id, CancellationToken ct)
+    {
+        var device = await _deviceService.HeartbeatAsync(id, ct);
+        return Ok(ApiResponse<DeviceResponse>.Ok(ToResponse(device)));
+    }
+
+    /// <summary>Activa un datáfono (puede operar).</summary>
+    [HttpPost("{id:guid}/activate")]
+    [ProducesResponseType(typeof(ApiResponse<DeviceResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Activate(Guid id, CancellationToken ct)
+    {
+        var device = await _deviceService.ActivateAsync(id, ct);
+        return Ok(ApiResponse<DeviceResponse>.Ok(ToResponse(device)));
+    }
+
+    /// <summary>Desactiva un datáfono (deja de poder operar).</summary>
+    [HttpPost("{id:guid}/deactivate")]
+    [ProducesResponseType(typeof(ApiResponse<DeviceResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Deactivate(Guid id, CancellationToken ct)
+    {
+        var device = await _deviceService.DeactivateAsync(id, ct);
+        return Ok(ApiResponse<DeviceResponse>.Ok(ToResponse(device)));
+    }
+
     private static DeviceResponse ToResponse(Device device) => new()
     {
         Id = device.Id,
         SerialNumber = device.SerialNumber,
         Alias = device.Alias,
         Status = device.Status.ToString(),
+        LastSeenAt = device.LastSeenAt,
         CreatedAt = device.CreatedAt
     };
 }

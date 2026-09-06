@@ -15,6 +15,12 @@ public class WalletService
         _users = users;
     }
 
+    public async Task<Wallet> GetByIdAsync(Guid id, CancellationToken ct = default)
+    {
+        return await _wallets.GetByIdAsync(id, ct)
+               ?? throw new NotFoundException($"No existe una billetera con id {id}.");
+    }
+
     public async Task<Wallet> GetByUserIdAsync(Guid userId, CancellationToken ct = default)
     {
         return await _wallets.GetByUserIdAsync(userId, ct)

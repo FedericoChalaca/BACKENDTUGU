@@ -21,4 +21,10 @@ public class InMemoryDeviceRepository : IDeviceRepository
         _store[device.Id] = device;
         return Task.CompletedTask;
     }
+
+    public Task UpdateAsync(Device device, CancellationToken ct = default)
+    {
+        _store[device.Id] = device;
+        return Task.CompletedTask;
+    }
 }

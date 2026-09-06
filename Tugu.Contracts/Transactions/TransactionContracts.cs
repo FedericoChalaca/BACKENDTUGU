@@ -18,6 +18,25 @@ public class RechargeRequest
     public Guid? DeviceId { get; init; }
 }
 
+/// <summary>
+/// Retiro en punto de venta. A diferencia de la recarga, el datáfono
+/// (deviceId) es obligatorio: el efectivo lo entrega un corresponsal físico.
+/// </summary>
+public class WithdrawRequest
+{
+    public required Guid WalletId { get; init; }
+
+    public required decimal Amount { get; init; }
+
+    /// <summary>UUID generado por el cliente; reintentar con la misma clave no duplica el retiro.</summary>
+    public required Guid IdempotencyKey { get; init; }
+
+    public string? Reference { get; init; }
+
+    /// <summary>Datáfono (corresponsal) donde se entrega el efectivo. Obligatorio.</summary>
+    public required Guid DeviceId { get; init; }
+}
+
 public class TransactionResponse
 {
     public required Guid Id { get; init; }

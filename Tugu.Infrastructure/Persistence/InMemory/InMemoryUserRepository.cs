@@ -30,4 +30,10 @@ public class InMemoryUserRepository : IUserRepository
         _store[user.Id] = user;
         return Task.CompletedTask;
     }
+
+    public Task UpdateAsync(User user, CancellationToken ct = default)
+    {
+        _store[user.Id] = user;
+        return Task.CompletedTask;
+    }
 }

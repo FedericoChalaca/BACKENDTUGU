@@ -24,4 +24,10 @@ public class EfDeviceRepository : IDeviceRepository
         _db.Devices.Add(device);
         await _db.SaveChangesAsync(ct);
     }
+
+    public async Task UpdateAsync(Device device, CancellationToken ct = default)
+    {
+        _db.Devices.Update(device);
+        await _db.SaveChangesAsync(ct);
+    }
 }
