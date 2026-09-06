@@ -8,5 +8,7 @@ public interface IWalletRepository
 
     Task<Wallet?> GetByUserIdAsync(Guid userId, CancellationToken ct = default);
 
+    Task<Wallet?> GetByCompanyIdAsync(Guid companyId, CancellationToken ct = default);
+
     Task AddAsync(Wallet wallet, CancellationToken ct = default);
 }

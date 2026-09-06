@@ -117,16 +117,45 @@ Response `data`:
 { "firstName": "Anita", "lastName": null, "phoneNumber": null, "email": "nuevo@correo.com" }
 ```
 
+### Comercios (TUGU Negocios)
+
+| Método | Ruta | Identidad | Descripción |
+|---|---|---|---|
+| POST | `/companies` | sí | Crea el comercio; el usuario autenticado queda como miembro. `201` |
+| GET | `/companies/me` | sí | Comercio del usuario autenticado (`404` si no pertenece a ninguno) |
+| GET | `/companies/{id}` | no | Comercio por id |
+| PUT | `/companies/{id}` | sí, miembro | Edita nombre/email/teléfono. El NIT no es editable |
+| POST | `/companies/{id}/members` | sí, miembro | Asocia otro usuario (`409` si ya pertenece a un comercio) |
+
+`POST /companies` request:
+```json
+{ "name": "Tienda Belén", "nit": "900.123.456-7", "email": "tienda@correo.com", "phoneNumber": "6041234567" }
+```
+El NIT se acepta con o sin puntos y se guarda normalizado (`900123456-7`).
+
+Response `data`:
+```json
+{ "id": "…", "name": "Tienda Belén", "nit": "900123456-7", "email": "…", "phoneNumber": "…",
+  "status": "PendingVerification", "memberUserIds": ["…"], "walletId": null, "createdAt": "…" }
+```
+`status`: `PendingVerification` (puede recargar, **no** retirar), `Active`, `Blocked`.
+Un usuario administra como máximo un comercio.
+
 ### Billeteras
 
 | Método | Ruta | Identidad | Descripción |
 |---|---|---|---|
-| POST | `/wallets` | no | Crea la billetera de un usuario (una por usuario). `201` |
-| GET | `/wallets/me` | sí | Billetera propia (incluye saldo) |
-| GET | `/wallets/{id}` | no | Billetera por id |
+| POST | `/wallets` | solo para comercio | Crea la billetera de un usuario (`userId`) o de un comercio (`companyId`, solo miembros). Una por dueño. `201` |
+| GET | `/wallets/me` | sí | Billetera propia del usuario (incluye saldo) |
+| GET | `/wallets/{id}` | no | Billetera por id (usuario o comercio) |
 
-`POST /wallets` request: `{ "userId": "…" }`.
-Response `data`: `{ "id": "…", "userId": "…", "balance": 0, "currency": "COP", "status": "Active", "createdAt": "…" }`.
+`POST /wallets` request: `{ "userId": "…" }` **o** `{ "companyId": "…" }` (exactamente uno).
+Response `data`:
+```json
+{ "id": "…", "ownerType": "User", "userId": "…", "companyId": null, "balance": 0,
+  "currency": "COP", "status": "Active", "createdAt": "…" }
+```
+La billetera del comercio se obtiene con `GET /companies/me` (campo `walletId`) y luego `GET /wallets/{id}`.
 
 ### Datáfonos (TUGU Datáfono)
 
@@ -137,9 +166,10 @@ Response `data`: `{ "id": "…", "userId": "…", "balance": 0, "currency": "COP
 | POST | `/devices/{id}/heartbeat` | Señal de vida; actualiza `lastSeenAt` |
 | POST | `/devices/{id}/activate` | Habilita para operar (`409` si ya estaba activo) |
 | POST | `/devices/{id}/deactivate` | Inhabilita (`409` si ya estaba inactivo) |
+| PUT | `/devices/{id}/company` | Asigna el datáfono a un comercio (corresponsal) |
 
-`POST /devices/register` request: `{ "serialNumber": "SN-000123", "alias": "Datáfono tienda Belén" }`.
-Response `data`: `{ "id": "…", "serialNumber": "SN-000123", "alias": "…", "status": "Active", "lastSeenAt": "…", "createdAt": "…" }`.
+`POST /devices/register` request: `{ "serialNumber": "SN-000123", "alias": "Datáfono tienda Belén", "companyId": "…" }` (`companyId` opcional).
+Response `data`: `{ "id": "…", "serialNumber": "SN-000123", "alias": "…", "status": "Active", "companyId": "…", "lastSeenAt": "…", "createdAt": "…" }`.
 
 ### Transacciones
 
@@ -215,7 +245,10 @@ Se crean automáticamente al arrancar la API en Development si la base está vac
 | Usuario | Documento | Teléfono | Estado | Saldo inicial |
 |---|---|---|---|---|
 | Ana Prueba | CC 1017000001 | 3000000001 | `Active` (puede retirar) | $50.000 COP |
-| Carlos Prueba | CC 1017000002 | 3000000002 | `Active` | $0 |
+| Carlos Prueba | CC 1017000002 | 3000000002 | `Active`; administra "Tienda Prueba" | $0 |
+
+Comercio de prueba: **Tienda Prueba** (NIT `900123456-7`, `Active`, con billetera en $0)
+y su datáfono `SN-SEED-0001` (`Active`, asignado a la tienda).
 
 Sus UUIDs se generan en cada base nueva: consúltenlos con `GET /users/{id}`
 tras crearlos, o vía Adminer (`http://localhost:8081`, servidor `postgres`,
@@ -234,9 +267,13 @@ usuario/base `tugu`).
 `GET /wallets/{id}` o buscar billetera del usuario → `POST /transactions/withdraw`
 (o `recharge`) con `deviceId` del datáfono y `idempotencyKey` nueva.
 
+**Comercio (Negocios):**
+`POST /companies` (con identidad del dueño) → `POST /wallets { companyId }` → `POST /devices/register { companyId }` →
+`GET /companies/me` → `GET /transactions?walletId=<walletId del comercio>`.
+
 ## 8. Lo que aún NO existe (para que no lo esperen)
 
 - Cognito/JWT (identidad temporal por header).
-- Módulo `companies` (comercios) y billeteras de comercio — pospuesto hasta que TUGU Negocios entre al alcance.
+- Verificación de identidad/KYC: hoy no hay endpoint para pasar un usuario o comercio a `Active` (llega con Cognito/KYC).
 - Reportes/agregaciones (P1).
 - Ambientes DEV/STAGING en AWS.

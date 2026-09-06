@@ -19,6 +19,9 @@ public class EfWalletRepository : IWalletRepository
     public Task<Wallet?> GetByUserIdAsync(Guid userId, CancellationToken ct = default) =>
         _db.Wallets.FirstOrDefaultAsync(w => w.UserId == userId, ct);
 
+    public Task<Wallet?> GetByCompanyIdAsync(Guid companyId, CancellationToken ct = default) =>
+        _db.Wallets.FirstOrDefaultAsync(w => w.CompanyId == companyId, ct);
+
     public async Task AddAsync(Wallet wallet, CancellationToken ct = default)
     {
         _db.Wallets.Add(wallet);

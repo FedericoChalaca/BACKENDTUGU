@@ -4,16 +4,19 @@ using Tugu.Domain.Enums;
 namespace Tugu.Domain.Entities;
 
 /// <summary>
-/// Billetera de un usuario. Cuando TUGU Negocios entre al alcance se agregará
-/// el dueño tipo comercio (CompanyId nullable); por ahora siempre es un usuario.
+/// Billetera de un usuario O de un comercio: exactamente uno de UserId /
+/// CompanyId está presente (check constraint en BD) y OwnerType lo indica.
 /// </summary>
 public class Wallet : AuditableEntity
 {
-    public Guid UserId { get; set; }
+    public Guid? UserId { get; set; }
 
     public User? User { get; set; }
 
-    /// <summary>Por ahora siempre User; Company se habilita cuando entre TUGU Negocios.</summary>
+    public Guid? CompanyId { get; set; }
+
+    public Company? Company { get; set; }
+
     public WalletOwnerType OwnerType { get; set; } = WalletOwnerType.User;
 
     /// <summary>

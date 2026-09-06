@@ -18,8 +18,15 @@ public enum UserStatus
 
 public enum WalletOwnerType
 {
-    User = 1
-    // Company = 2 — se agrega cuando TUGU Negocios entre al alcance
+    User = 1,
+    Company = 2
+}
+
+public enum CompanyStatus
+{
+    PendingVerification = 1,
+    Active = 2,
+    Blocked = 3
 }
 
 public enum WalletStatus

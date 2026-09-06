@@ -8,10 +8,12 @@ namespace Tugu.Application.Devices;
 public class DeviceService
 {
     private readonly IDeviceRepository _devices;
+    private readonly ICompanyRepository _companies;
 
-    public DeviceService(IDeviceRepository devices)
+    public DeviceService(IDeviceRepository devices, ICompanyRepository companies)
     {
         _devices = devices;
+        _companies = companies;
     }
 
     public async Task<Device> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -20,7 +22,9 @@ public class DeviceService
                ?? throw new NotFoundException($"No existe un dispositivo con id {id}.");
     }
 
-    public async Task<Device> RegisterAsync(string serialNumber, string alias, CancellationToken ct = default)
+    /// <summary>Registra un datáfono; opcionalmente asignado a un comercio (corresponsal).</summary>
+    public async Task<Device> RegisterAsync(
+        string serialNumber, string alias, Guid? companyId = null, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(serialNumber))
             throw new ValidationException("El serial del dispositivo es obligatorio.");
@@ -30,14 +34,32 @@ public class DeviceService
         if (await _devices.GetBySerialAsync(serialNumber, ct) is not null)
             throw new ConflictException("Ya existe un dispositivo registrado con ese serial.");
 
+        if (companyId is Guid cid && await _companies.GetByIdAsync(cid, ct) is null)
+            throw new NotFoundException($"No existe un comercio con id {cid}.");
+
         var device = new Device
         {
             SerialNumber = serialNumber,
             Alias = string.IsNullOrWhiteSpace(alias) ? serialNumber : alias.Trim(),
+            CompanyId = companyId,
             LastSeenAt = DateTime.UtcNow
         };
 
         await _devices.AddAsync(device, ct);
+        return device;
+    }
+
+    /// <summary>Asigna (o reasigna) el datáfono a un comercio.</summary>
+    public async Task<Device> AssignToCompanyAsync(Guid id, Guid companyId, CancellationToken ct = default)
+    {
+        var device = await GetByIdAsync(id, ct);
+
+        if (await _companies.GetByIdAsync(companyId, ct) is null)
+            throw new NotFoundException($"No existe un comercio con id {companyId}.");
+
+        device.CompanyId = companyId;
+        device.UpdatedAt = DateTime.UtcNow;
+        await _devices.UpdateAsync(device, ct);
         return device;
     }
 

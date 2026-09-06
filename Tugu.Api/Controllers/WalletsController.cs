@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Tugu.Api.Auth;
+using Tugu.Application.Common.Exceptions;
 using Tugu.Application.Wallets;
 using Tugu.Contracts.Common;
 using Tugu.Contracts.Wallets;
@@ -18,14 +19,27 @@ public class WalletsController : ControllerBase
         _walletService = walletService;
     }
 
-    /// <summary>Crea la billetera de un usuario (una por usuario).</summary>
+    /// <summary>
+    /// Crea una billetera: de un usuario (userId) o de un comercio (companyId,
+    /// solo miembros del comercio). Una por dueño.
+    /// </summary>
     [HttpPost]
     [ProducesResponseType(typeof(ApiResponse<WalletResponse>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create([FromBody] CreateWalletRequest request, CancellationToken ct)
     {
-        var wallet = await _walletService.CreateAsync(request.UserId, ct);
+        var hasUser = request.UserId is not null;
+        var hasCompany = request.CompanyId is not null;
+        if (hasUser == hasCompany)
+            throw new ValidationException("Envía exactamente uno de userId o companyId.");
+
+        var wallet = request.UserId is Guid userId
+            ? await _walletService.CreateAsync(userId, ct)
+            : await _walletService.CreateForCompanyAsync(request.CompanyId!.Value, DevIdentity.GetUserId(HttpContext), ct);
+
         return StatusCode(StatusCodes.Status201Created, ApiResponse<WalletResponse>.Ok(ToResponse(wallet)));
     }
 
@@ -54,7 +68,9 @@ public class WalletsController : ControllerBase
     private static WalletResponse ToResponse(Wallet wallet) => new()
     {
         Id = wallet.Id,
+        OwnerType = wallet.OwnerType.ToString(),
         UserId = wallet.UserId,
+        CompanyId = wallet.CompanyId,
         Balance = wallet.Balance,
         Currency = wallet.Currency,
         Status = wallet.Status.ToString(),

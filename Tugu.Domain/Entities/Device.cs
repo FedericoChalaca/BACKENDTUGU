@@ -19,4 +19,9 @@ public class Device : AuditableEntity
 
     /// <summary>Última vez que el datáfono se comunicó con el backend (UTC).</summary>
     public DateTime? LastSeenAt { get; set; }
+
+    /// <summary>Comercio (corresponsal) que opera este datáfono; null si aún no está asignado.</summary>
+    public Guid? CompanyId { get; set; }
+
+    public Company? Company { get; set; }
 }

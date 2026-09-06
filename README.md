@@ -48,8 +48,10 @@ dotnet build
 dotnet run --project Tugu.Api
 ```
 
-Al arrancar en Development, la API aplica las migraciones pendientes y siembra
-2 usuarios de prueba (Ana con $50.000 COP y Carlos con $0) si la base está vacía.
+Al arrancar en Development, la API aplica las migraciones pendientes y, si la
+base está vacía, siembra datos de prueba: Ana ($50.000 COP), Carlos ($0), el
+comercio "Tienda Prueba" (NIT 900123456-7, administrado por Carlos, con
+billetera) y su datáfono `SN-SEED-0001`.
 
 Migraciones (herramienta local, no requiere instalación global):
 
@@ -72,7 +74,12 @@ La API queda en `http://localhost:5000` (perfil `http` por defecto).
 | GET | `/users/me` | Usuario autenticado |
 | GET | `/users/{id}` | Usuario por id |
 | PUT | `/users/{id}` | Editar nombre/teléfono/email (solo el propio usuario) |
-| POST | `/wallets` | Crear billetera de un usuario |
+| POST | `/companies` | Crear comercio (el usuario autenticado queda como miembro) |
+| GET | `/companies/me` | Comercio del usuario autenticado |
+| GET | `/companies/{id}` | Comercio por id |
+| PUT | `/companies/{id}` | Editar nombre/email/teléfono (solo miembros; NIT no editable) |
+| POST | `/companies/{id}/members` | Asociar otro usuario al comercio (solo miembros) |
+| POST | `/wallets` | Crear billetera de un usuario (`userId`) o de un comercio (`companyId`, solo miembros) |
 | GET | `/wallets/me` | Billetera del usuario autenticado |
 | GET | `/wallets/{id}` | Billetera por id |
 | POST | `/devices/register` | Registrar un datáfono por serial |
@@ -80,6 +87,7 @@ La API queda en `http://localhost:5000` (perfil `http` por defecto).
 | POST | `/devices/{id}/heartbeat` | Señal de vida del datáfono |
 | POST | `/devices/{id}/activate` | Activar datáfono |
 | POST | `/devices/{id}/deactivate` | Desactivar datáfono |
+| PUT | `/devices/{id}/company` | Asignar el datáfono a un comercio (corresponsal) |
 | POST | `/transactions/recharge` | Recargar saldo (idempotente, atómico) |
 | POST | `/transactions/withdraw` | Retiro en datáfono (idempotente; exige usuario verificado y datáfono activo) |
 | GET | `/transactions` | Movimientos paginados con filtros (tipo, estado, fechas, orden) |

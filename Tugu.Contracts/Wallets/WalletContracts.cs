@@ -1,15 +1,23 @@
 namespace Tugu.Contracts.Wallets;
 
+/// <summary>Exactamente uno de userId / companyId. Para companyId, el caller debe ser miembro del comercio.</summary>
 public class CreateWalletRequest
 {
-    public required Guid UserId { get; init; }
+    public Guid? UserId { get; init; }
+
+    public Guid? CompanyId { get; init; }
 }
 
 public class WalletResponse
 {
     public required Guid Id { get; init; }
 
-    public required Guid UserId { get; init; }
+    /// <summary>User o Company.</summary>
+    public required string OwnerType { get; init; }
+
+    public Guid? UserId { get; init; }
+
+    public Guid? CompanyId { get; init; }
 
     public required decimal Balance { get; init; }
 

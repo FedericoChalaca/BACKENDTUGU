@@ -15,6 +15,9 @@ public class InMemoryWalletRepository : IWalletRepository
     public Task<Wallet?> GetByUserIdAsync(Guid userId, CancellationToken ct = default) =>
         Task.FromResult(_store.Values.FirstOrDefault(w => w.UserId == userId));
 
+    public Task<Wallet?> GetByCompanyIdAsync(Guid companyId, CancellationToken ct = default) =>
+        Task.FromResult(_store.Values.FirstOrDefault(w => w.CompanyId == companyId));
+
     public Task AddAsync(Wallet wallet, CancellationToken ct = default)
     {
         _store[wallet.Id] = wallet;

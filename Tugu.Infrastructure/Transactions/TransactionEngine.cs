@@ -68,21 +68,38 @@ public class TransactionEngine : ITransactionEngine
             if (wallet.Status != WalletStatus.Active)
                 throw new ConflictException($"La billetera no está activa (estado: {wallet.Status}).");
 
-            // Reglas por estado del dueño:
+            // Reglas por estado del dueño (usuario o comercio):
             //  - Blocked: no mueve saldo en ningún sentido.
-            //  - PendingVerification: puede RECARGAR (cargar plata a su cuenta)
-            //    pero NO RETIRAR: sacar efectivo exige identidad verificada (KYC).
-            var owner = await _db.Users.AsNoTracking()
-                .FirstOrDefaultAsync(u => u.Id == wallet.UserId, ct)
-                ?? throw new InvalidOperationException(
-                    $"Inconsistencia: la billetera {wallet.Id} no tiene usuario dueño.");
+            //  - PendingVerification: puede RECARGAR pero NO RETIRAR: sacar
+            //    efectivo exige identidad (KYC) o comercio verificado.
+            if (wallet.OwnerType == WalletOwnerType.Company)
+            {
+                var company = await _db.Companies.AsNoTracking()
+                    .FirstOrDefaultAsync(c => c.Id == wallet.CompanyId, ct)
+                    ?? throw new InvalidOperationException(
+                        $"Inconsistencia: la billetera {wallet.Id} no tiene comercio dueño.");
 
-            if (owner.Status == UserStatus.Blocked)
-                throw new ConflictException("El usuario dueño de la billetera está bloqueado.");
+                if (company.Status == CompanyStatus.Blocked)
+                    throw new ConflictException("El comercio dueño de la billetera está bloqueado.");
 
-            if (command.Type == TransactionType.Withdrawal && owner.Status != UserStatus.Active)
-                throw new ConflictException(
-                    "El usuario debe tener identidad verificada (estado Active) para retirar efectivo.");
+                if (command.Type == TransactionType.Withdrawal && company.Status != CompanyStatus.Active)
+                    throw new ConflictException(
+                        "El comercio debe estar verificado (estado Active) para retirar efectivo.");
+            }
+            else
+            {
+                var owner = await _db.Users.AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Id == wallet.UserId, ct)
+                    ?? throw new InvalidOperationException(
+                        $"Inconsistencia: la billetera {wallet.Id} no tiene usuario dueño.");
+
+                if (owner.Status == UserStatus.Blocked)
+                    throw new ConflictException("El usuario dueño de la billetera está bloqueado.");
+
+                if (command.Type == TransactionType.Withdrawal && owner.Status != UserStatus.Active)
+                    throw new ConflictException(
+                        "El usuario debe tener identidad verificada (estado Active) para retirar efectivo.");
+            }
 
             var newBalance = command.Type switch
             {

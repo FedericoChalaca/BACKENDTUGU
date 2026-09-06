@@ -23,6 +23,7 @@ public static class DependencyInjection
         services.AddDbContext<TuguDbContext>(options => options.UseNpgsql(connectionString));
 
         services.AddScoped<IUserRepository, EfUserRepository>();
+        services.AddScoped<ICompanyRepository, EfCompanyRepository>();
         services.AddScoped<IWalletRepository, EfWalletRepository>();
         services.AddScoped<IDeviceRepository, EfDeviceRepository>();
         services.AddScoped<IBiometricRepository, EfBiometricRepository>();

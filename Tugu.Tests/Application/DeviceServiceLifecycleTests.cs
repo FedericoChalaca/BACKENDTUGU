@@ -7,7 +7,7 @@ namespace Tugu.Tests.Application;
 
 public class DeviceServiceLifecycleTests
 {
-    private readonly DeviceService _service = new(new InMemoryDeviceRepository());
+    private readonly DeviceService _service = new(new InMemoryDeviceRepository(), new InMemoryCompanyRepository());
 
     [Fact]
     public async Task GetByIdAsync_Inexistente_LanzaNotFound()

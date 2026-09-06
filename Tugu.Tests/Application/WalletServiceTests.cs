@@ -15,7 +15,7 @@ public class WalletServiceTests
 
     public WalletServiceTests()
     {
-        _service = new WalletService(new InMemoryWalletRepository(), _users);
+        _service = new WalletService(new InMemoryWalletRepository(), _users, new InMemoryCompanyRepository());
     }
 
     private async Task<User> SeedUserAsync()
@@ -32,7 +32,8 @@ public class WalletServiceTests
 
         var wallet = await _service.CreateAsync(user.Id);
 
-        Assert.Equal(user.Id, wallet.UserId);
+        Assert.Equal(user.Id, wallet.UserId!.Value);
+        Assert.Equal(WalletOwnerType.User, wallet.OwnerType);
         Assert.Equal(0m, wallet.Balance);
         Assert.Equal("COP", wallet.Currency);
         Assert.Equal(WalletStatus.Active, wallet.Status);

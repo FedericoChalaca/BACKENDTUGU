@@ -1,23 +1,26 @@
-# TUGU — Diagrama ER (MVP)
+# TUGU — Diagrama ER
 
-Modelo de datos del MVP. Cinco entidades; `companies` y `reports` quedan
-deliberadamente fuera hasta que se pidan.
+Modelo de datos actual. `reports` sigue deliberadamente fuera (P1).
 
 Convenciones: UUID como PK en todo, timestamps en UTC, montos siempre
-`decimal`, auditoría (`created_at`, `updated_at`, `created_by`) en todas
+`decimal(18,2)`, auditoría (`created_at`, `updated_at`, `created_by`) en todas
 las entidades.
 
 ```mermaid
 erDiagram
-    USERS ||--o| WALLETS : "posee"
+    USERS ||--o| WALLETS : "posee (usuario)"
+    COMPANIES ||--o| WALLETS : "posee (comercio)"
     USERS ||--o| BIOMETRICS : "enrola"
+    USERS ||--o{ COMPANY_MEMBERS : "administra"
+    COMPANIES ||--o{ COMPANY_MEMBERS : "tiene"
+    COMPANIES |o--o{ DEVICES : "opera (corresponsal)"
     WALLETS ||--o{ TRANSACTIONS : "registra"
     DEVICES |o--o{ TRANSACTIONS : "origina"
 
     USERS {
         uuid id PK
         int document_type "CC / CE / TI / Passport"
-        string document_number "unico junto con document_type (KYC)"
+        string document_number "unico junto con document_type (KYC, no editable)"
         string first_name
         string last_name
         string phone_number "unico"
@@ -28,10 +31,32 @@ erDiagram
         string created_by
     }
 
+    COMPANIES {
+        uuid id PK
+        string name
+        string nit "unico, normalizado (digitos y guion), no editable"
+        string email "nullable"
+        string phone_number "nullable"
+        int status "PendingVerification / Active / Blocked"
+        timestamptz created_at
+        timestamptz updated_at
+        string created_by
+    }
+
+    COMPANY_MEMBERS {
+        uuid id PK
+        uuid company_id FK
+        uuid user_id FK "unico junto con company_id"
+        timestamptz created_at
+        timestamptz updated_at
+        string created_by
+    }
+
     WALLETS {
         uuid id PK
-        uuid user_id FK "unico: 1 wallet por usuario"
-        int owner_type "User (Company en fase posterior)"
+        uuid user_id FK "nullable, unico: 1 wallet por usuario"
+        uuid company_id FK "nullable, unico: 1 wallet por comercio"
+        int owner_type "User / Company (CHECK: exactamente un dueño)"
         decimal balance "decimal(18,2), nunca float"
         char currency "COP"
         int status "Active / Frozen / Closed"
@@ -43,13 +68,13 @@ erDiagram
     TRANSACTIONS {
         uuid id PK
         uuid wallet_id FK
-        int type "Recharge (Withdrawal fase 2)"
+        int type "Recharge / Withdrawal"
         decimal amount "positivo; el sentido lo da type"
         decimal balance_after "snapshot para auditoria"
         int status "Pending / Completed / Failed / Reversed"
         uuid idempotency_key "unico: clave de idempotencia"
         string reference "nullable, referencia externa"
-        uuid device_id FK "nullable: datafono de origen"
+        uuid device_id FK "nullable en recarga, obligatorio en retiro"
         timestamptz created_at
         string created_by
     }
@@ -57,7 +82,7 @@ erDiagram
     BIOMETRICS {
         uuid id PK
         uuid user_id FK "unico: 1 huella por usuario"
-        bytes encrypted_template "encriptado en reposo, JAMAS en logs"
+        bytes encrypted_template "AES-256, JAMAS en logs"
         string template_format "formato/SDK del lector"
         int status "Active / Revoked"
         timestamptz enrolled_at "nullable"
@@ -72,6 +97,7 @@ erDiagram
         string serial_number "unico"
         string alias
         int status "Active / Inactive"
+        uuid company_id FK "nullable: comercio corresponsal"
         timestamptz last_seen_at "nullable"
         timestamptz created_at
         timestamptz updated_at
@@ -85,10 +111,16 @@ erDiagram
   y el backend identifica al usuario contra los templates enrolados. No hay QR
   ni búsqueda por documento en el flujo de pago. El documento existe solo como
   dato de identidad (KYC).
-- **Sin `password_hash`:** las credenciales de login vivirán en Amazon Cognito
-  (Tarea 1.4). Guardarlas también en nuestra BD duplicaría autenticación.
+- **Sin `password_hash`:** las credenciales de login vivirán en Amazon Cognito.
+- **Un dueño por billetera:** `user_id` XOR `company_id`, garantizado por una
+  check constraint en PostgreSQL además de `owner_type`.
+- **Comercios (TUGU Negocios):** un usuario administra como máximo un comercio
+  (`company_members`); solo los miembros pueden editarlo, agregar miembros o
+  crear su billetera. Los datáfonos pueden asignarse a un comercio (corresponsal).
 - **`transactions` es inmutable:** los errores se corrigen con transacciones de
   reversa, nunca editando la original. `balance_after` guarda el saldo
   resultante como evidencia de auditoría.
-- **Idempotencia:** `idempotency_key` tendrá índice único; un reintento con la
+- **Idempotencia:** `idempotency_key` tiene índice único; un reintento con la
   misma clave devuelve la transacción original en vez de duplicar el efecto.
+- **Retiro:** exige `device_id` (datáfono `Active`) y dueño verificado
+  (`Active`, sea usuario o comercio). La recarga no exige verificación.

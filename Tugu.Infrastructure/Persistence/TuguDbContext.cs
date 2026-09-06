@@ -10,6 +10,8 @@ public class TuguDbContext : DbContext
     }
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<Company> Companies => Set<Company>();
+    public DbSet<CompanyMember> CompanyMembers => Set<CompanyMember>();
     public DbSet<Wallet> Wallets => Set<Wallet>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<Biometric> Biometrics => Set<Biometric>();
@@ -30,17 +32,52 @@ public class TuguDbContext : DbContext
             e.HasIndex(u => u.PhoneNumber).IsUnique();
         });
 
+        modelBuilder.Entity<Company>(e =>
+        {
+            e.ToTable("companies");
+            e.Property(c => c.Name).IsRequired().HasMaxLength(150);
+            e.Property(c => c.Nit).IsRequired().HasMaxLength(20);
+            e.Property(c => c.Email).HasMaxLength(200);
+            e.Property(c => c.PhoneNumber).HasMaxLength(20);
+            e.Property(c => c.CreatedBy).IsRequired().HasMaxLength(50);
+            e.HasIndex(c => c.Nit).IsUnique();
+        });
+
+        modelBuilder.Entity<CompanyMember>(e =>
+        {
+            e.ToTable("company_members");
+            e.Property(m => m.CreatedBy).IsRequired().HasMaxLength(50);
+            e.HasIndex(m => new { m.CompanyId, m.UserId }).IsUnique();
+            e.HasOne(m => m.Company)
+                .WithMany(c => c.Members)
+                .HasForeignKey(m => m.CompanyId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(m => m.User)
+                .WithMany()
+                .HasForeignKey(m => m.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
         modelBuilder.Entity<Wallet>(e =>
         {
-            e.ToTable("wallets");
+            e.ToTable("wallets", t => t.HasCheckConstraint(
+                "CK_wallets_exactly_one_owner",
+                "(\"UserId\" IS NOT NULL) <> (\"CompanyId\" IS NOT NULL)"));
             // Regla no negociable: montos en decimal con precisión explícita.
             e.Property(w => w.Balance).HasPrecision(18, 2);
             e.Property(w => w.Currency).IsRequired().HasMaxLength(3);
             e.Property(w => w.CreatedBy).IsRequired().HasMaxLength(50);
-            e.HasIndex(w => w.UserId).IsUnique(); // 1 billetera por usuario
+            e.HasIndex(w => w.UserId).IsUnique();     // 1 billetera por usuario
+            e.HasIndex(w => w.CompanyId).IsUnique();  // 1 billetera por comercio
             e.HasOne(w => w.User)
                 .WithOne(u => u.Wallet)
                 .HasForeignKey<Wallet>(w => w.UserId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(w => w.Company)
+                .WithOne(c => c.Wallet)
+                .HasForeignKey<Wallet>(w => w.CompanyId)
+                .IsRequired(false)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
@@ -83,6 +120,12 @@ public class TuguDbContext : DbContext
             e.Property(d => d.Alias).IsRequired().HasMaxLength(100);
             e.Property(d => d.CreatedBy).IsRequired().HasMaxLength(50);
             e.HasIndex(d => d.SerialNumber).IsUnique();
+            e.HasIndex(d => d.CompanyId);
+            e.HasOne(d => d.Company)
+                .WithMany()
+                .HasForeignKey(d => d.CompanyId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

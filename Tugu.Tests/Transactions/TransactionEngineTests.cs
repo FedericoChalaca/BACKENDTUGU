@@ -32,7 +32,7 @@ public class TransactionEngineTests : IAsyncLifetime
             await using var db = NewContext();
             _dbAvailable = await db.Database.CanConnectAsync();
             if (_dbAvailable)
-                await db.Database.MigrateAsync();
+                await TestDatabase.EnsureMigratedAsync(db);
         }
         catch
         {

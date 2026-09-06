@@ -7,7 +7,7 @@ namespace Tugu.Tests.Application;
 
 public class DeviceServiceTests
 {
-    private static DeviceService NewService() => new(new InMemoryDeviceRepository());
+    private static DeviceService NewService() => new(new InMemoryDeviceRepository(), new InMemoryCompanyRepository());
 
     [Fact]
     public async Task RegisterAsync_SerialNuevo_RegistraActivo()
