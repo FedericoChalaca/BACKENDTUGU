@@ -110,6 +110,13 @@ La API queda en `http://localhost:5000` (perfil `http` por defecto).
 >
 > **CI:** [.github/workflows/ci.yml](.github/workflows/ci.yml) compila y corre
 > todos los tests (con PostgreSQL efímero) en cada push/PR a GitHub.
+>
+> **Forma de trabajo:** roles como agentes de Claude Code en
+> [.claude/agents/](.claude/agents/) (architect, backend-developer, qa,
+> frontend-integration, tech-lead), contexto vivo en
+> [context/project.md](context/project.md) y
+> [context/constraints.md](context/constraints.md), y el flujo por tarjeta de
+> Trello en [orchestration/workflow.md](orchestration/workflow.md).
 
 ## Cómo correr las pruebas
 
