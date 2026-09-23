@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Tugu.Application.Biometrics;
 using Tugu.Application.Common.Exceptions;
 using Tugu.Application.Users;
@@ -9,6 +10,7 @@ namespace Tugu.Api.Controllers;
 
 [ApiController]
 [Route("biometrics")]
+[EnableRateLimiting("sensitive")]
 public class BiometricsController : ControllerBase
 {
     private readonly BiometricService _biometricService;

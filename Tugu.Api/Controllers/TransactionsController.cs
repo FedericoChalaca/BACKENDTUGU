@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Tugu.Api.Auth;
 using Tugu.Application.Common.Exceptions;
 using Tugu.Application.Common.Interfaces;
@@ -13,6 +14,7 @@ namespace Tugu.Api.Controllers;
 
 [ApiController]
 [Route("transactions")]
+[EnableRateLimiting("sensitive")]
 public class TransactionsController : ControllerBase
 {
     private readonly ITransactionEngine _engine;

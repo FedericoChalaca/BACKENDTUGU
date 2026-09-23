@@ -55,6 +55,8 @@ public class ExceptionHandlingMiddleware
         }
         catch (Exception ex)
         {
+            // Solo método y ruta: nunca query string, headers ni body (pueden
+            // traer identidad, tokens o datos biométricos).
             _logger.LogError(ex,
                 "Excepción no manejada procesando {Method} {Path}",
                 context.Request.Method, context.Request.Path);

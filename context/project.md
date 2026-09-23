@@ -22,7 +22,7 @@ apps a KMP. Etapa: **prototipo/MVP**, sin usuarios ni dinero real.
 | Tablero | Trello "tugu" (export en `D:\trabajo tugu\NZUCVi5s - tugu.json`) |
 | Correr local | `docker compose up -d` → `dotnet run --project Tugu.Api` → `http://localhost:5000/swagger` |
 | Base local | PostgreSQL 16 en Docker (`tugu-postgres`), visor Adminer en `http://localhost:8081` |
-| Tests | `dotnet test Tugu.sln` (81 tests: unitarios + integración contra Postgres) |
+| Tests | `dotnet test Tugu.sln` (94 tests: unitarios + integración contra Postgres) |
 | CI | `.github/workflows/ci.yml` (build + tests con Postgres efímero en cada push) |
 | Contrato para las apps | `docs/api-handoff.md` + `docs/openapi.json` |
 | Modelo de datos | `docs/er-diagram.md` |
@@ -48,7 +48,12 @@ Tugu.Tests           → xUnit (unitarios con repos in-memory; integración con 
 - **Devices:** `POST /devices/register`, `GET /devices/{id}`, `POST /devices/{id}/heartbeat`, `POST /devices/{id}/activate|deactivate`, `PUT /devices/{id}/company`
 - **Transactions:** `POST /transactions/recharge`, `POST /transactions/withdraw`, `GET /transactions`, `GET /transactions/{id}`
 - **Biometrics:** `POST /biometrics/enroll`, `POST /biometrics/verify`, `GET /biometrics/status/{userId}`
+- **Reports:** `GET /reports/summary`, `GET /reports/transactions`
 - **Health:** `GET /health`
+
+Transversal: header `X-Correlation-ID` en toda respuesta y en cada log; rate
+limiting por IP (300/min global, 30/min en `/transactions` y `/biometrics`, 429
+`RATE_LIMITED`); cabeceras `nosniff`, `X-Frame-Options: DENY`, `no-store`.
 
 ## Estado del Trello (backend) — 2026-09-07
 
@@ -65,8 +70,18 @@ secrets, rollback y smoke tests esperan AWS.
 **BLOQUEADO (por cuenta AWS):** AUTH (Cognito), AWS DEV, INTEGRATION Personal,
 INTEGRATION Negocios+Datáfono, RELEASE.
 
-**P1 pendientes (sin bloqueo):** [QA] Pruebas financieras, [SECURITY] Seguridad
-+ observabilidad, [REPORTS] Reportes.
+**P1 (2026-09-23):**
+- [QA] Pruebas financieras → 11/13 hechas (faltan "token vencido" y "token
+  inválido": Cognito). Tests: `TransactionEngine*Tests`.
+- [SECURITY] Seguridad + observabilidad → parte local hecha (correlation/request
+  ID, logs estructurados, rate limiting, sanitización de logs, no registrar
+  JWT/templates/passwords, auditoría). Lo de AWS (IAM, KMS, Secrets Manager,
+  CloudWatch, X-Ray, CloudTrail, GuardDuty, WAF) espera la cuenta.
+- [REPORTS] → HECHO (`/reports/summary`, `/reports/transactions`, índices
+  `(WalletId, CreatedAt)` y `(DeviceId, CreatedAt)`).
+
+**Decidido por el jefe (2026-09-23):** base en AWS = RDS PostgreSQL pequeño,
+sin Aurora ni RDS Proxy.
 
 ## Piezas temporales (se reemplazan, no se extienden)
 
@@ -78,5 +93,4 @@ INTEGRATION Negocios+Datáfono, RELEASE.
 
 - Cuenta de AWS (desbloquea AUTH, AWS, DEVOPS deploy, HANDOFF URL DEV, INTEGRATION, RELEASE).
 - SDK del lector de huella del datáfono (para calzar el contrato de `verify`).
-- Decisión del jefe sobre la contradicción Aurora/RDS Proxy/Lambda vs `CLAUDE.md`.
 - Arenera (sandbox) de la Superintendencia Financiera: revisar cuando el usuario lo pida.

@@ -17,6 +17,7 @@ public static class DependencyInjection
         services.AddScoped<DeviceService>();
         services.AddScoped<BiometricService>();
         services.AddScoped<Transactions.TransactionQueryService>();
+        services.AddScoped<Reports.ReportService>();
         return services;
     }
 }

@@ -30,6 +30,17 @@ reemplaza por `Authorization: Bearer <JWT de Cognito>`. Los contratos de
 request/response NO cambian; solo cambia cómo se envía la identidad. Diseñen
 el cliente HTTP con un interceptor de auth intercambiable.
 
+## 2b. Correlation ID y límites de peticiones
+
+- Toda respuesta trae el header **`X-Correlation-ID`**. Las apps deberían
+  enviarlo en cada petición (uno nuevo por flujo de usuario) y guardarlo junto a
+  cualquier error que muestren: con ese id se rastrea la petición en los logs
+  del backend. Si no lo envían, la API genera uno.
+- **Rate limiting** por IP: 300 peticiones/min en general y **30/min en
+  `/transactions` y `/biometrics`**. Al superarlo la API responde **429** con
+  `error.code = "RATE_LIMITED"`. La app debe esperar y reintentar (misma
+  `idempotencyKey` si era una operación de saldo), no repetir en bucle.
+
 ## 3. Formato estándar de respuesta
 
 **Toda** respuesta, exitosa o de error, viene envuelta así:
@@ -76,6 +87,7 @@ Los listados paginados van dentro de `data`:
 | 404 | `NOT_FOUND` | Usuario, billetera, dispositivo o transacción inexistente |
 | 409 | `CONFLICT` | Duplicados (documento, teléfono, serial), estado inválido (billetera/datáfono inactivo, usuario bloqueado o sin verificar), `idempotencyKey` reutilizada con otros parámetros |
 | 409 | `INSUFFICIENT_FUNDS` | Retiro mayor al saldo |
+| 429 | `RATE_LIMITED` | Demasiadas peticiones desde la misma IP; esperar y reintentar |
 | 500 | `INTERNAL_ERROR` | Error no controlado (nunca expone detalles internos) |
 
 ## 5. Endpoints
@@ -218,6 +230,25 @@ Response `data` (ambos):
 | `page` | ≥ 1 | 1 |
 | `pageSize` | 1–100 | 20 |
 
+### Reportes (TUGU Negocios / Personal)
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/reports/summary` | Totales del filtro: `count`, `totalIn` (recargas completadas), `totalOut` (retiros completados), `net`, `byStatus` |
+| GET | `/reports/transactions` | Listado paginado del filtro, más reciente primero |
+
+Query params (comunes): al menos uno de `walletId`, `companyId` (billetera del
+comercio) o `deviceId` (corresponsal); opcionales `type`, `status`, `from`, `to`
+(rango máximo 366 días). `transactions` acepta además `page` y `pageSize` (1–100).
+
+Response `data` de `summary`:
+```json
+{ "count": 12, "totalIn": 350000, "totalOut": 120000, "net": 230000,
+  "byStatus": { "Completed": 11, "Failed": 1 }, "currency": "COP", "from": "…", "to": "…" }
+```
+> Hasta Cognito no hay roles: cualquier caller puede consultar cualquier filtro.
+> Con JWT el alcance se limitará al usuario/comercio del token.
+
 ### Biometría (TUGU Datáfono / Personal)
 
 | Método | Ruta | Descripción |
@@ -275,5 +306,4 @@ usuario/base `tugu`).
 
 - Cognito/JWT (identidad temporal por header).
 - Verificación de identidad/KYC: hoy no hay endpoint para pasar un usuario o comercio a `Active` (llega con Cognito/KYC).
-- Reportes/agregaciones (P1).
 - Ambientes DEV/STAGING en AWS.

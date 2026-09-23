@@ -90,6 +90,9 @@ public class TuguDbContext : DbContext
             e.Property(t => t.CreatedBy).IsRequired().HasMaxLength(50);
             // Regla no negociable: idempotencia garantizada por índice único.
             e.HasIndex(t => t.IdempotencyKey).IsUnique();
+            // Movimientos y reportes siempre filtran por billetera y ordenan por fecha.
+            e.HasIndex(t => new { t.WalletId, t.CreatedAt });
+            e.HasIndex(t => new { t.DeviceId, t.CreatedAt });
             e.HasOne(t => t.Wallet)
                 .WithMany(w => w.Transactions)
                 .HasForeignKey(t => t.WalletId)

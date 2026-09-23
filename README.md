@@ -92,6 +92,8 @@ La API queda en `http://localhost:5000` (perfil `http` por defecto).
 | POST | `/transactions/withdraw` | Retiro en datáfono (idempotente; exige usuario verificado y datáfono activo) |
 | GET | `/transactions` | Movimientos paginados con filtros (tipo, estado, fechas, orden) |
 | GET | `/transactions/{id}` | Detalle de una transacción |
+| GET | `/reports/summary` | Totales (entradas, salidas, neto, por estado) por billetera, comercio o datáfono |
+| GET | `/reports/transactions` | Listado paginado de transacciones por billetera, comercio o datáfono |
 | POST | `/biometrics/enroll` | Enrolar la huella de un usuario |
 | POST | `/biometrics/verify` | Identificar usuario SOLO por huella (1:N) |
 | GET | `/biometrics/status/{userId}` | Estado de enrolamiento biométrico |

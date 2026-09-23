@@ -36,6 +36,8 @@ public class TransactionEngine : ITransactionEngine
             throw new ValidationException("El monto debe ser mayor que cero.");
         if (command.IdempotencyKey == Guid.Empty)
             throw new ValidationException("idempotencyKey es obligatoria y no puede ser un UUID vacío.");
+        if (command.Reference?.Length > 100)
+            throw new ValidationException("reference admite máximo 100 caracteres.");
 
         // Reintento con la misma clave: devolver la transacción original.
         var existing = await FindByKeyAsync(command.IdempotencyKey, ct);

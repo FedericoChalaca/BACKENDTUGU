@@ -1,4 +1,6 @@
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Tugu.Api.Middleware;
 using Tugu.Application;
 using Tugu.Infrastructure;
@@ -43,6 +45,45 @@ builder.Services.AddControllers()
             return new BadRequestObjectResult(response);
         };
     });
+// Rate limiting (built-in de .NET 8, sin librerías). Límite por IP para toda
+// la API y uno más estricto para operaciones de dinero y biometría. Al
+// superarlo responde 429 en el formato estándar. Los valores viven en
+// appsettings ("RateLimiting") para ajustarlos por ambiente sin recompilar.
+var rl = builder.Configuration.GetSection("RateLimiting");
+var globalPerMinute = rl.GetValue("GlobalPerMinute", 300);
+var sensitivePerMinute = rl.GetValue("SensitivePerMinute", 30);
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = globalPerMinute,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+    options.AddPolicy("sensitive", ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = sensitivePerMinute,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+    options.OnRejected = async (ctx, ct) =>
+    {
+        ctx.HttpContext.Response.ContentType = "application/json";
+        var body = Tugu.Contracts.Common.ApiResponse<object>.Fail(
+            "RATE_LIMITED", "Demasiadas peticiones. Espera un momento e intenta de nuevo.");
+        await ctx.HttpContext.Response.WriteAsync(
+            System.Text.Json.JsonSerializer.Serialize(body, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)), ct);
+    };
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -56,8 +97,11 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-// Manejo global de excepciones: siempre el primer middleware del pipeline.
+// Orden: correlation ID primero (para que hasta los errores lo lleven), luego
+// el manejo global de excepciones, luego el rate limiter.
+app.UseMiddleware<RequestContextMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment())
 {

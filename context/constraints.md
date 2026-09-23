@@ -61,7 +61,9 @@ silencio. Fuente original: `CLAUDE.md` (raíz de `D:\trabajo tugu`).
 | 2026-09-06 | `companies` entra al alcance porque es P0 en el Trello (pese a que CLAUDE.md lo dejaba fuera). Un usuario administra un solo comercio. | Aceptada (usuario) |
 | 2026-09-06 | El NIT del comercio no es editable por API. | Aceptada |
 | 2026-09-06 | La `reference` de una transacción la envía el cliente (no la genera el backend). | Decisión de diseño; ítem "crear referencia" de [RECARGA] queda sin marcar |
-| — | [P0][AWS] pide Aurora Serverless v2 + RDS Proxy + Lambda; `CLAUDE.md` dice RDS pequeño sin Aurora. | **PENDIENTE del jefe** — no construir AWS hasta resolver |
+| 2026-09-23 | Base en AWS: **RDS PostgreSQL pequeño** (sin Aurora ni RDS Proxy). Migrar a Aurora solo cuando haya usuarios y tráfico real (misma engine PostgreSQL, sin cambios de código). | **Decidida por el jefe**. Al hacer [P0][AWS] ignorar los ítems "RDS Proxy" y "Aurora PostgreSQL Serverless v2" del checklist |
+| 2026-09-23 | Rate limiting nativo de .NET 8 por IP (300/min global, 30/min en `/transactions` y `/biometrics`), configurable en `appsettings` → `RateLimiting`. Responde 429 `RATE_LIMITED`. | Aceptada; revisar los umbrales con tráfico real |
+| 2026-09-23 | Correlation ID: header `X-Correlation-ID` (lo genera la API si la app no lo manda) devuelto en toda respuesta y presente en cada línea de log de la petición. Las apps deberían enviarlo y guardarlo para soporte. | Aceptada |
 
 ## 5. Cosas temporales que NO deben crecer
 
