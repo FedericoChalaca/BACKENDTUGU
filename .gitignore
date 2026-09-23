@@ -43,3 +43,7 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+# AWS CDK (salida generada por `cdk synth`)
+infra/cdk.out/
+infra/cdk.context.json

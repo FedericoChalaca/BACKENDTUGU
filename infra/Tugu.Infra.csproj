@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RollForward>LatestMajor</RollForward>
+    <!-- Amazon.CDK.Lib arrastra un aviso de severidad BAJA (GHSA-464c-974j-9xm6) en
+         todas sus versiones recientes; es una herramienta de despliegue, no corre en
+         la API. Solo fallar por avisos moderados o peores. -->
+    <NuGetAuditLevel>moderate</NuGetAuditLevel>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Amazon.CDK.Lib" Version="2.189.1" />
+    <PackageReference Include="Constructs" Version="10.4.2" />
+  </ItemGroup>
+
+</Project>

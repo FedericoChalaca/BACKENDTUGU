@@ -13,7 +13,7 @@ exportada vive en [openapi.json](openapi.json).
 | Ambiente | Base URL | Estado |
 |---|---|---|
 | Local (desarrollador) | `http://localhost:5000` | Disponible (`docker compose up -d` + `dotnet run --project Tugu.Api`) |
-| DEV (AWS) | *pendiente* | Se define cuando exista la cuenta AWS (tarjeta `[P0][AWS]`) |
+| DEV (AWS) | *pendiente* | La infraestructura está lista en `infra/` (CDK); la URL sale de `cdk deploy` cuando exista la cuenta |
 
 ## 2. Autenticación
 
@@ -29,6 +29,18 @@ X-Dev-UserId: <uuid del usuario>
 reemplaza por `Authorization: Bearer <JWT de Cognito>`. Los contratos de
 request/response NO cambian; solo cambia cómo se envía la identidad. Diseñen
 el cliente HTTP con un interceptor de auth intercambiable.
+
+La validación JWT **ya está implementada** en la API (`Tugu.Api/Auth/CognitoJwt.cs`)
+y se enciende con configuración cuando exista el User Pool. Detalles que las
+apps deben saber desde ya:
+- Habrá **un App Client por app** (personal, negocios, datafono); el token de
+  una app no sirve en otra.
+- El backend toma la identidad del claim `sub` del token. **El `sub` de Cognito
+  debe ser el `id` del usuario en el backend**: al registrar, la app crea el
+  usuario en Cognito y luego llama `POST /users` (el contrato de `POST /users`
+  recibirá el `id`; se ajusta cuando se active Cognito).
+- Token vencido/inválido → `401`. Se aplica a los mismos endpoints que hoy
+  exigen `X-Dev-UserId`.
 
 ## 2b. Correlation ID y límites de peticiones
 

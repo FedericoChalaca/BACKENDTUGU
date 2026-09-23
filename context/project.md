@@ -83,10 +83,20 @@ INTEGRATION Negocios+Datáfono, RELEASE.
 **Decidido por el jefe (2026-09-23):** base en AWS = RDS PostgreSQL pequeño,
 sin Aurora ni RDS Proxy.
 
+**Preparado sin cuenta AWS (2026-09-23):** `infra/` (CDK C#: VPC sin NAT, RDS
+t4g.micro, App Runner, Cognito con 3 App Clients, ECR, Secrets Manager + KMS),
+`Dockerfile` de la API, y validación JWT de Cognito en la API apagada por
+config (`Cognito:Enabled`). Con cuenta: `cdk bootstrap` → `cdk deploy TuguDev`
+→ `docker push` → copiar salidas al handoff. Adelanta [P0][AWS], [P0][AUTH] y
+la parte de deploy de [P0][DEVOPS]; quedan por probar en vivo.
+
 ## Piezas temporales (se reemplazan, no se extienden)
 
-- **Identidad:** header `X-Dev-UserId` (`Tugu.Api/Auth/DevIdentity.cs`) hasta Cognito.
-- **Clave AES de biometría:** en `appsettings.Development.json`; en producción vendrá de un KMS.
+- **Identidad:** header `X-Dev-UserId` (`Tugu.Api/Auth/DevIdentity.cs`) hasta
+  Cognito. `DevIdentity.GetUserId` ya lee el claim `sub` del JWT cuando
+  `Cognito:Enabled=true`; los controllers no cambian.
+- **Clave AES de biometría:** en `appsettings.Development.json`; en AWS viene
+  de Secrets Manager (`Biometrics__EncryptionKey`, cifrado con KMS).
 - **Verificación KYC:** no existe endpoint para pasar usuario/comercio a `Active`; llega con Cognito/KYC.
 
 ## Inputs externos pendientes

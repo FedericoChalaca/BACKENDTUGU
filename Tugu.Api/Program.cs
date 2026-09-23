@@ -1,11 +1,22 @@
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Tugu.Api.Auth;
 using Tugu.Api.Middleware;
 using Tugu.Application;
 using Tugu.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// En AWS, App Runner inyecta el secreto de RDS como JSON en TUGU_DB_SECRET_JSON;
+// lo convertimos en la cadena de conexión que ya usa Infrastructure.
+if (System.Environment.GetEnvironmentVariable("TUGU_DB_SECRET_JSON") is { Length: > 0 } dbSecretJson)
+{
+    var s = System.Text.Json.JsonDocument.Parse(dbSecretJson).RootElement;
+    builder.Configuration["ConnectionStrings:TuguDb"] =
+        $"Host={s.GetProperty("host").GetString()};Port={s.GetProperty("port")};Database={s.GetProperty("dbname").GetString()};" +
+        $"Username={s.GetProperty("username").GetString()};Password={s.GetProperty("password").GetString()};SSL Mode=Require";
+}
 
 // Logging estructurado con el proveedor built-in de .NET (JSON en consola).
 builder.Logging.ClearProviders();
@@ -19,6 +30,9 @@ builder.Logging.AddJsonConsole(options =>
 // Capas de la aplicación (Clean Architecture).
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// JWT de Cognito: solo se activa con Cognito:Enabled=true (AWS). En local sigue X-Dev-UserId.
+builder.Services.AddCognitoJwt(builder.Configuration);
 
 // API.
 builder.Services.AddControllers()
@@ -103,19 +117,27 @@ app.UseMiddleware<RequestContextMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseRateLimiter();
 
-if (app.Environment.IsDevelopment())
+// "Development" = tu máquina; "Dev" = el ambiente DEV en AWS. Ambos son de
+// pruebas: Swagger visible y migraciones + seed al arrancar. Producción no.
+if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Dev"))
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 
-    // Solo en Development: aplica migraciones pendientes y siembra datos de
-    // prueba. En ambientes reales las migraciones se aplican en el despliegue.
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<Tugu.Infrastructure.Persistence.TuguDbContext>();
     await Tugu.Infrastructure.Persistence.DevDataSeeder.MigrateAndSeedAsync(db);
 }
 
-app.UseHttpsRedirection();
+// Detrás de App Runner el TLS lo termina AWS; redirigir a https solo en local.
+if (app.Environment.IsDevelopment())
+    app.UseHttpsRedirection();
+
+if (Tugu.Api.Auth.CognitoJwt.IsEnabled(app.Configuration))
+{
+    app.UseAuthentication();
+    app.UseAuthorization();
+}
 
 app.MapControllers();
 

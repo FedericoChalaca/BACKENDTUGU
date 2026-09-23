@@ -103,8 +103,36 @@ retiro/movimientos 32, companies 30 = 112 verificaciones.
 | Auth + infraestructura + integración + release | AUTH, AWS, INTEGRATION ×2, RELEASE | BLOQUEADO | Cuenta AWS + decisión Aurora vs RDS + avance de las apps |
 | P1 sin bloqueo | [QA] Pruebas financieras → [SECURITY] Seguridad + observabilidad (parte local) → [REPORTS] | Lista de tareas | Ninguno: se pueden hacer ya |
 
-Orden sugerido mientras llega AWS: **[P1][QA]** (formalizar las pruebas
-financieras como suite nombrada y reporte), **[P1][SECURITY]** (rate limiting,
-headers de seguridad, redacción de logs, health detallado) y **[P1][REPORTS]**
-(agregados por billetera/comercio sobre `transactions`; requiere diseño del
-architect porque agrega consultas y quizá tabla `reports`).
+Estado 2026-09-23: las tres P1 locales están hechas ([QA] 11/13, [SECURITY]
+parte local, [REPORTS] completa). **No queda trabajo del Trello que se pueda
+avanzar sin la cuenta de AWS o el SDK del datáfono.**
+
+## 7. Guion para el día que llegue la cuenta de AWS
+
+Todo está preparado en `infra/` (CDK), `Dockerfile` y `Tugu.Api/Auth/CognitoJwt.cs`.
+Orden, con el rol que lo ejecuta:
+
+1. **backend-developer:** seguir `infra/README.md` (bootstrap → deploy → push de
+   imagen). Copiar las salidas (`ApiUrl`, `UserPoolId`, `ClientId-*`).
+2. **backend-developer:** activar Cognito en la API (ya lo hace App Runner por
+   variables de entorno) y ajustar `POST /users` para recibir el `sub` de
+   Cognito como `id`. Añadir los tests "token vencido" y "token inválido" que
+   faltan en [P1][QA].
+3. **qa:** E2E contra la URL DEV: `/health`, flujo completo con JWT real de cada
+   App Client, 401 con token vencido/inválido/de otra app.
+4. **frontend-integration:** completar `docs/api-handoff.md` (URL DEV,
+   UserPoolId, ClientIds, flujo de login) y avisar al supervisor.
+5. **tech-lead:** marcar [P0][AWS] (ignorando "RDS Proxy" y "Aurora" por decisión
+   del jefe), [P0][AUTH], los ítems AWS de [P0][HANDOFF] y [P0][DEVOPS], y los
+   de AWS de [P1][SECURITY] que el stack ya cubre (IAM mínimo, KMS, Secrets
+   Manager). CloudWatch Logs lo da App Runner solo; X-Ray, CloudTrail, GuardDuty
+   y WAF siguen fuera (prototipo).
+
+## 8. Guion para el día que llegue el SDK del datáfono
+
+1. **architect:** leer la doc del SDK y decidir: ¿el matching lo hace el SDK en
+   el dispositivo (entonces `verify` recibe un `userId` candidato + resultado) o
+   entrega un template comparable (entonces el 1:N actual se mantiene)?
+2. **backend-developer:** ajustar `BiometricService.VerifyAsync` y el contrato
+   según lo anterior; registrar la decisión en `context/constraints.md`.
+3. **qa + frontend-integration:** E2E y handoff de biometría actualizados.
